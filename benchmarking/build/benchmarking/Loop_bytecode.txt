@@ -1,0 +1,293 @@
+Classfile /Users/laurenkrikorian/Repositories/native-java-article/benchmarking/build/benchmarking/Loop.class
+  Last modified Dec 3, 2025; size 1654 bytes
+  SHA-256 checksum b8fd8d24c3e8d5bcf6eae06626d4b50e6ba31ac2cc7b968e73b1b5165e7836cf
+  Compiled from "Loop.java"
+public class benchmarking.Loop
+  minor version: 0
+  major version: 65
+  flags: (0x0021) ACC_PUBLIC, ACC_SUPER
+  this_class: #13                         // benchmarking/Loop
+  super_class: #2                         // java/lang/Object
+  interfaces: 0, fields: 3, methods: 6, attributes: 3
+Constant pool:
+   #1 = Methodref          #2.#3          // java/lang/Object."<init>":()V
+   #2 = Class              #4             // java/lang/Object
+   #3 = NameAndType        #5:#6          // "<init>":()V
+   #4 = Utf8               java/lang/Object
+   #5 = Utf8               <init>
+   #6 = Utf8               ()V
+   #7 = Fieldref           #8.#9          // java/lang/System.out:Ljava/io/PrintStream;
+   #8 = Class              #10            // java/lang/System
+   #9 = NameAndType        #11:#12        // out:Ljava/io/PrintStream;
+  #10 = Utf8               java/lang/System
+  #11 = Utf8               out
+  #12 = Utf8               Ljava/io/PrintStream;
+  #13 = Class              #14            // benchmarking/Loop
+  #14 = Utf8               benchmarking/Loop
+  #15 = String             #16            // Finding prime numbers up to 1000001\n
+  #16 = Utf8               Finding prime numbers up to 1000001\n
+  #17 = Methodref          #18.#19        // java/io/PrintStream.println:(Ljava/lang/String;)V
+  #18 = Class              #20            // java/io/PrintStream
+  #19 = NameAndType        #21:#22        // println:(Ljava/lang/String;)V
+  #20 = Utf8               java/io/PrintStream
+  #21 = Utf8               println
+  #22 = Utf8               (Ljava/lang/String;)V
+  #23 = Integer            1000001
+  #24 = Methodref          #13.#25        // benchmarking/Loop.java_sieve:(I)V
+  #25 = NameAndType        #26:#27        // java_sieve:(I)V
+  #26 = Utf8               java_sieve
+  #27 = Utf8               (I)V
+  #28 = Methodref          #13.#29        // benchmarking/Loop.c_sieve:(I)V
+  #29 = NameAndType        #30:#27        // c_sieve:(I)V
+  #30 = Utf8               c_sieve
+  #31 = Methodref          #8.#32         // java/lang/System.currentTimeMillis:()J
+  #32 = NameAndType        #33:#34        // currentTimeMillis:()J
+  #33 = Utf8               currentTimeMillis
+  #34 = Utf8               ()J
+  #35 = InvokeDynamic      #0:#36         // #0:makeConcatWithConstants:(J)Ljava/lang/String;
+  #36 = NameAndType        #37:#38        // makeConcatWithConstants:(J)Ljava/lang/String;
+  #37 = Utf8               makeConcatWithConstants
+  #38 = Utf8               (J)Ljava/lang/String;
+  #39 = InvokeDynamic      #1:#40         // #1:makeConcatWithConstants:(II)Ljava/lang/String;
+  #40 = NameAndType        #37:#41        // makeConcatWithConstants:(II)Ljava/lang/String;
+  #41 = Utf8               (II)Ljava/lang/String;
+  #42 = Methodref          #18.#43        // java/io/PrintStream.print:(Ljava/lang/String;)V
+  #43 = NameAndType        #44:#22        // print:(Ljava/lang/String;)V
+  #44 = Utf8               print
+  #45 = String             #46            // nativeLoop
+  #46 = Utf8               nativeLoop
+  #47 = Methodref          #8.#48         // java/lang/System.loadLibrary:(Ljava/lang/String;)V
+  #48 = NameAndType        #49:#22        // loadLibrary:(Ljava/lang/String;)V
+  #49 = Utf8               loadLibrary
+  #50 = Utf8               num
+  #51 = Utf8               I
+  #52 = Utf8               ConstantValue
+  #53 = Utf8               j_count
+  #54 = Utf8               v_count
+  #55 = Utf8               Code
+  #56 = Utf8               LineNumberTable
+  #57 = Utf8               c_counter
+  #58 = Utf8               main
+  #59 = Utf8               ([Ljava/lang/String;)V
+  #60 = Utf8               StackMapTable
+  #61 = Class              #62            // "[Z"
+  #62 = Utf8               [Z
+  #63 = Utf8               <clinit>
+  #64 = Utf8               SourceFile
+  #65 = Utf8               Loop.java
+  #66 = Utf8               BootstrapMethods
+  #67 = String             #68            // Java function time: \u0001 ms
+  #68 = Utf8               Java function time: \u0001 ms
+  #69 = String             #70            // There are \u0001 prime numbers up to \u0001.\n
+  #70 = Utf8               There are \u0001 prime numbers up to \u0001.\n
+  #71 = MethodHandle       6:#72          // REF_invokeStatic java/lang/invoke/StringConcatFactory.makeConcatWithConstants:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;
+  #72 = Methodref          #73.#74        // java/lang/invoke/StringConcatFactory.makeConcatWithConstants:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;
+  #73 = Class              #75            // java/lang/invoke/StringConcatFactory
+  #74 = NameAndType        #37:#76        // makeConcatWithConstants:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;
+  #75 = Utf8               java/lang/invoke/StringConcatFactory
+  #76 = Utf8               (Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;
+  #77 = Utf8               InnerClasses
+  #78 = Class              #79            // java/lang/invoke/MethodHandles$Lookup
+  #79 = Utf8               java/lang/invoke/MethodHandles$Lookup
+  #80 = Class              #81            // java/lang/invoke/MethodHandles
+  #81 = Utf8               java/lang/invoke/MethodHandles
+  #82 = Utf8               Lookup
+{
+  public static final int num;
+    descriptor: I
+    flags: (0x0019) ACC_PUBLIC, ACC_STATIC, ACC_FINAL
+    ConstantValue: int 1000001
+
+  public benchmarking.Loop();
+    descriptor: ()V
+    flags: (0x0001) ACC_PUBLIC
+    Code:
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+         4: return
+      LineNumberTable:
+        line 3: 0
+
+  public static native void c_counter(int);
+    descriptor: (I)V
+    flags: (0x0109) ACC_PUBLIC, ACC_STATIC, ACC_NATIVE
+
+  public static native void c_sieve(int);
+    descriptor: (I)V
+    flags: (0x0109) ACC_PUBLIC, ACC_STATIC, ACC_NATIVE
+
+  public static void main(java.lang.String[]);
+    descriptor: ([Ljava/lang/String;)V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=1, args_size=1
+         0: getstatic     #7                  // Field java/lang/System.out:Ljava/io/PrintStream;
+         3: ldc           #15                 // String Finding prime numbers up to 1000001\n
+         5: invokevirtual #17                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+         8: ldc           #23                 // int 1000001
+        10: invokestatic  #24                 // Method java_sieve:(I)V
+        13: ldc           #23                 // int 1000001
+        15: invokestatic  #28                 // Method c_sieve:(I)V
+        18: return
+      LineNumberTable:
+        line 19: 0
+        line 20: 8
+        line 21: 13
+        line 22: 18
+
+  public static void java_sieve(int);
+    descriptor: (I)V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=6, locals=8, args_size=1
+         0: iload_0
+         1: iconst_1
+         2: iadd
+         3: newarray       boolean
+         5: astore_1
+         6: iconst_0
+         7: istore_2
+         8: iload_2
+         9: iload_0
+        10: if_icmpgt     23
+        13: aload_1
+        14: iload_2
+        15: iconst_1
+        16: bastore
+        17: iinc          2, 1
+        20: goto          8
+        23: aload_1
+        24: iconst_0
+        25: aload_1
+        26: iconst_1
+        27: iconst_0
+        28: dup_x2
+        29: bastore
+        30: bastore
+        31: invokestatic  #31                 // Method java/lang/System.currentTimeMillis:()J
+        34: lstore_2
+        35: iconst_2
+        36: istore        4
+        38: iload         4
+        40: iload         4
+        42: imul
+        43: iload_0
+        44: if_icmpgt     88
+        47: aload_1
+        48: iload         4
+        50: baload
+        51: ifeq          82
+        54: iload         4
+        56: iload         4
+        58: imul
+        59: istore        5
+        61: iload         5
+        63: iload_0
+        64: if_icmpgt     82
+        67: aload_1
+        68: iload         5
+        70: iconst_0
+        71: bastore
+        72: iload         5
+        74: iload         4
+        76: iadd
+        77: istore        5
+        79: goto          61
+        82: iinc          4, 1
+        85: goto          38
+        88: invokestatic  #31                 // Method java/lang/System.currentTimeMillis:()J
+        91: lstore        4
+        93: getstatic     #7                  // Field java/lang/System.out:Ljava/io/PrintStream;
+        96: lload         4
+        98: lload_2
+        99: lsub
+       100: invokedynamic #35,  0             // InvokeDynamic #0:makeConcatWithConstants:(J)Ljava/lang/String;
+       105: invokevirtual #17                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       108: iconst_0
+       109: istore        6
+       111: iconst_2
+       112: istore        7
+       114: iload         7
+       116: iload_0
+       117: if_icmpgt     136
+       120: aload_1
+       121: iload         7
+       123: baload
+       124: ifeq          130
+       127: iinc          6, 1
+       130: iinc          7, 1
+       133: goto          114
+       136: getstatic     #7                  // Field java/lang/System.out:Ljava/io/PrintStream;
+       139: iload         6
+       141: iload_0
+       142: invokedynamic #39,  0             // InvokeDynamic #1:makeConcatWithConstants:(II)Ljava/lang/String;
+       147: invokevirtual #42                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       150: return
+      LineNumberTable:
+        line 25: 0
+        line 27: 6
+        line 28: 13
+        line 27: 17
+        line 31: 23
+        line 33: 31
+        line 35: 35
+        line 36: 47
+        line 37: 54
+        line 38: 67
+        line 37: 72
+        line 35: 82
+        line 43: 88
+        line 44: 93
+        line 46: 108
+        line 47: 111
+        line 48: 120
+        line 49: 127
+        line 47: 130
+        line 52: 136
+        line 53: 150
+      StackMapTable: number_of_entries = 9
+        frame_type = 253 /* append */
+          offset_delta = 8
+          locals = [ class "[Z", int ]
+        frame_type = 250 /* chop */
+          offset_delta = 14
+        frame_type = 253 /* append */
+          offset_delta = 14
+          locals = [ long, int ]
+        frame_type = 252 /* append */
+          offset_delta = 22
+          locals = [ int ]
+        frame_type = 250 /* chop */
+          offset_delta = 20
+        frame_type = 250 /* chop */
+          offset_delta = 5
+        frame_type = 254 /* append */
+          offset_delta = 25
+          locals = [ long, int, int ]
+        frame_type = 15 /* same */
+        frame_type = 250 /* chop */
+          offset_delta = 5
+
+  static {};
+    descriptor: ()V
+    flags: (0x0008) ACC_STATIC
+    Code:
+      stack=1, locals=0, args_size=0
+         0: ldc           #45                 // String nativeLoop
+         2: invokestatic  #47                 // Method java/lang/System.loadLibrary:(Ljava/lang/String;)V
+         5: return
+      LineNumberTable:
+        line 15: 0
+        line 16: 5
+}
+SourceFile: "Loop.java"
+BootstrapMethods:
+  0: #71 REF_invokeStatic java/lang/invoke/StringConcatFactory.makeConcatWithConstants:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;
+    Method arguments:
+      #67 Java function time: \u0001 ms
+  1: #71 REF_invokeStatic java/lang/invoke/StringConcatFactory.makeConcatWithConstants:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;
+    Method arguments:
+      #69 There are \u0001 prime numbers up to \u0001.\n
+InnerClasses:
+  public static final #82= #78 of #80;    // Lookup=class java/lang/invoke/MethodHandles$Lookup of class java/lang/invoke/MethodHandles

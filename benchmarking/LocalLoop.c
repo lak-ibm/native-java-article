@@ -3,7 +3,7 @@
 #include <limits.h>
 
 int main (){
-    printf("Local ");
-    navtiveLoopCounterHelper(INT_MAX);
+    printf("Standalone ");
+    nativeSieve(1000001L);
     return 0;
 }

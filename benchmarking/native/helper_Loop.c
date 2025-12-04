@@ -1,15 +1,39 @@
 #include "helper_Loop.h"
 #include <time.h>
 #include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
-// static volatile int count;
+void nativeSieve(int num){
 
-void navtiveLoopCounterHelper(int num){
-    volatile int count = 0;
+    bool *isPrime = (bool *)malloc((num + 1) * sizeof(bool));
+    if (isPrime == NULL) {
+        printf("Memory allocation failed\n");
+        return;
+    }
+
+    for (int i = 0; i <= num; i++)
+        isPrime[i] = true;
+
+    isPrime[0] = isPrime[1] = false;
+
     clock_t start_clock = clock();
-    for(int i=0; i<num; i++){
-        count++;
+    for (int p = 2; p * p <= num; p++) {
+        if (isPrime[p]) {
+            for (int i = p * p; i <= num; i += p)
+                isPrime[i] = false;
+        }
     }
     clock_t end_clock = clock();
-    printf("C function time: %.f ms\n", ((double)(end_clock - start_clock) * 1000.0 / CLOCKS_PER_SEC));
+    printf("C Sieve function time: %.f ms\n", ((double)(end_clock - start_clock) * 1000.0 / CLOCKS_PER_SEC));
+    
+    int count = 0;
+
+    for (int i = 2; i <= num; i++) {
+        if (isPrime[i])
+            count++;
+    }
+
+    free(isPrime);
+    printf("There are %d prime numbers up to %d.\n", count, num);
 }

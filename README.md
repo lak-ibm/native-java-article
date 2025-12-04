@@ -1,118 +1,137 @@
-# What I Learned About Virtualization, Compilers, and Systems from a Counter Loop
+# What A Counter Loop Does Not Reveal about Virtualization, Compilers, and Systems
 
-This project began with a simple question: could I use Java Native Interface (JNI) to escape the limitations of the JVM and access low-level system functionality, like syscalls on a mainframe or other hardware? I knew Java didn’t allow direct syscalls, and I was curious whether JNI might offer a clever workaround. Also, how simple is it to increase the speed of a Java program by natively implementing some functionality in C? I've been wanting to improve my C and Assembly skills and was excited to avoid setting up a full system VM or risking my local machine.
+In the last few months, I have continued learning how different languages work, interoperability, and systems for other projects. I recognize some things I got wrong in [my first version](https://github.com/lak-ibm/native-java-article/tree/v1) of my article. I want to address them and take a stab at the experiment again.  
 
-Along the way, I uncovered more questions than answers: What exactly is the JVM doing under the hood? What are the real costs of abstraction? And is native code always faster?
+First, I had asked: can JNI be used to extend the capabilities of Java by accessing system services? I have an example to support each “yes” and “no.” First, some standard I/O libraries are implemented with JNI, such as file I/O. On the other hand, a peer recently discovered that they couldn’t use JNI to invoke a system service that supports a different word length than their JVM, as that particular processor’s architecture supports multiple word lengths. This makes sense, as I observed in my last experiment that I had to compile the C code for the architecture of my JVM, not the underlying system.  
 
-## Setup and Initial Surprises
+Secondly, I had hoped to trigger vectorization but didn’t understand much about SIMD architecture. I have an M2 Pro chip with SIMD wide enough for 4 32-bit integer operations at a time, and I’ll think later about whether I can manually map relevant operations to it before expecting anything from the compiler. Also, the compiler optimizations I was applying, GCC/Clang `O2` and `O3`, produce output specific to the specified architecture, which in some cases was not my host’s architecture.  
 
-People usually turn to JNI for three reasons: reusing legacy C/C++ libraries, interacting with hardware, or squeezing out more performance. I was focused on the third but figured it went hand in hand with the second.
+Next, I wasn’t able to guide or control compiler behavior as I had originally intended. I had hoped that marking variables as `volatile` would influence their storage, caching, and access. I had to do this because the algorithm I chose, a dummy counting loop, had no real purpose, and the compiler “knew” that.   
 
-A Java program calls C code through JNI by declaring a Java method as native. The Java compiler treats this method like any other static method, but does not provide an implementation. At runtime, the JVM links the method to a precompiled C binary based on a special naming convention defined by JNI. My first roadblock was eye-opening: I’m running an ARM-based Mac, but to compile C program inside my JVM, I had to add a flag and execute `gcc -arch x86_64`. I then discovered that the JRE on my machine is installed for an AMD64. It works because of Apple's Rosetta 2 interpreter for backwards compatibility with the old chip architecture. Everything seemed to work, and I've been using this JRE and Mac for the past 4 years. However, it led me to rabbit hole #2: how exactly is the JVM a virtual machine, how do system and process VMs differ, and what does virtualization really mean?
+Another point I had not fully considered when looking at the compiler outputs is how fundamentally different the execution models for Java and C are, and where they overlap when running C code via JNI. Virtualization introduces an additional layer of execution, which shifts where and how optimizations can occur. Initially, I tried to understand the two stacks by comparing Java bytecode to assembly, which is apples and oranges. A more meaningful comparison could be between Java bytecode and LLVM IR, as both are intermediate representations and therefore more conceptually comparable. One caveat is that LLVM IR may already include compiler optimizations, whereas Java bytecode is largely unoptimized. Comparing the two could help make informed guesses about how the AOT and JIT compilers will optimize the Java code at runtime and how effective that is.  
 
-Depending on which developer you ask, abstraction is either a brilliant engineering strategy or an annoying limitation. I began thinking of virtualization as abstraction at the lowest level of the stack, one that tries to hide physical hardware from the software entirely.
+I hypothesize that, in practice, a developer will build and ship a program with the highest level of optimizations possible while still ensuring correctness. One important difference between the execution models for C and Java is that the out-of-the-box Java AOT and JIT do not allow developers to control optimization aggressiveness; changing this behavior would require replacing or modifying these compilers. For this reason, using the default AOT and JIT is a fine baseline for comparison. 
 
-While ChatGPT, online resources, and my coworkers were helpful in answering many of my questions, I think there's no better way to drill down a concept than trial-and-error coding.
+I also unintentionally observed the effects of Rosetta 2, Apple’s runtime translation layer for supporting x86 binaries on ARM64-based chips, since my JDK was for the wrong chip. Because of this setup, I could not pass to the compiler any microarchitecture or CPU information through the flags `-march` or `-mcpu`.  
 
-### What I Wanted to Understand
+Overall, there were too many variables in my environment in my last experiment and not enough trials (I also only tested for one input size). I’ll address each and share the results in the rest of this article.  
 
-- What is the JVM really doing? What limitations and abstractions does it impose?
-- Which of those can I bypass using C via JNI?
-- Which can only be implemented in native C?
-- How portable is native code when used with Java's "write once, run everywhere" mantra?
+I also want to note that running `gcc -v` revealed that I am actually compiling with Clang. I have been using Apple Clang version 15.0.0 (clang-1500.3.9.4), which I’ll leave alone.  
 
-## Benchmarking the Counter Loop
+One last thing I got wrong: my instructions at the bottom were “how to run on Mac,” but the brand of the machine is not the critical variable. I’ve added parameters in my build and run script for host architecture and JVM architecture. That is all anyone may need to change to run this project.
 
-To test performance trade-offs, I wrote a simple benchmark: count from 0 to `INT_MAX` (2147483647) and measure the time. To ensure the loop wasn’t optimized away, I included a final check that the result wasn’t -1. These were the initial setups that I tried:
 
-### Java (Baseline)
 
-A pure Java method using a standard int counter. Timed using `System.currentTimeMillis()`. This version was surprisingly the fastest — around **210 ms** on my machine.
+## What I expect and hope to answer in my experiment
+My goal is to create a controlled environment by carefully managing runtime conditions and adjusting compiler optimization settings to produce predictable results. I will also observe system effects by comparing measured runtimes to theoretical time complexity analysis. Based on execution models and anticipated overheads, I expect that standalone C will run the fastest, the C program executed via JNI will be a close second due to some Java overhead, and the Java implementation will be the slowest. I will not test assembly via JNI in this study; I’ll make note of it in the future work section at the bottom, along with other questions and ideas for further exploration.  
 
-### C via JNI
+In my previous experiment, I observed that standalone Java was the slowest, C via JNI got second place, and Java was the fastest.  
 
-A C function doing the same loop with a `volatile int` count. This prevents the compiler from optimizing the variable away because the variable may be shared across threads and needs to be reaccessed at every use from memory. I compiled with no gcc optimization (`-O0`), so I am not sure how much this mattered. I invoked it through JNI and timed the loop using `clock()`. This was about **4.5x slower (~950 ms)** **than the Java version.**
 
-### Standalone C
 
-I compiled the same C code as a standalone executable (also default `-O0`/no optimization). Surprisingly, this version was even **slower** — about **9x slower (~1880 ms)** than the pure Java loop. Removing `volatile` appeared to have no effect on the time.
+## My experiment part 1 and observations
+To remove Rosetta 2 from the equation and get a more up-to-date Java experience, I upgraded from Java 17 for x86-64 to Java 21 for ARM64, the ISA of my M2 Pro chip. After rerunning the same code from my previous article without any optimizers, I found that standalone C performance was unchanged as expected. However, the Java loop took twice as long as before (~430 ms), and the JNI C loop also doubled (~1900 ms). Despite this slowdown, the C code invoked through JNI still ran in essentially the same time as the standalone C invocation.  
 
-### C with Inline x86 Assembly (via JNI)
+It’s highly unlikely this is a regression in Java 18–21. The main difference between this experiment and the last is that previously both Java and C were compiled for the wrong architecture and executed under Rosetta 2.  
 
-I wrote a loop in inline x86 Assembly and called it via JNI. This ran only **3x slower (about 620 ms)** than the Java version, but faster than the standard C code. Even though I could compile for both ARM and AMD architectures and run the standalone C code, I was not able to run the inline x86 Assembly version as a standalone program (something to explore another day).
+Rosetta 2 may not claim to be an aggressive optimizer, but the speedup could be explained by Apple developing both the chip and this translator, whereas the Clang, LLVM, and JDK backends are still a bit naive. Third-party compiler backends apply architecture-specific optimizations given an ISA and some microarchitecture information but lack the deep microarchitecture details. This may give Rosetta an advantage, since AOT compilers need substantially more time to apply deep optimization passes than a JIT can afford.  
 
-### Java with volatile
+In my last experiment, when I compiled the C via JNI with the `O2` optimizer, the loop ran twice as slow. The LLVM IR optimized with `O2` for x86_64 looks very different than the IR for ARM64. I find this really interesting, that the translation either took longer or Rosetta was unable to effectively optimize. I want to observe and evaluate optimization passes and techniques individually another time. It would be interesting if I could pass microarchitecture information to my Java JIT to make my Java programs run faster, as I can't tell how aware it is already.  
 
-I added a Java version using a `volatile int` counter, to try to be more consistent with the C code. This was by far the **slowest**, about **50x slower (~10,000 ms)** than the non-volatile Java version. I was relieved one of my experiments took an expected amount of time, and this reinforced how costly memory barriers and visibility guarantees are.
 
-### Static variable in C program
 
-Another implementation detail I tried in the Java program was making the counter variables static. I found that it did not make a performance difference, but again wanted to make sure the compiler didn't optimize the variables away. I made the `count` variable in the C code static (tried volatile and not), and discovered that the C loop ran **80x slower (~4000 ms)** than the Java loop for both the standalone program and JNI linked program! The most interesting part: the code invoked two different ways had the same performance, which I hadn't seen before. (I only tried this at the last minute, so definitely something I will look more into next time.)
+## My experiment part 2 and observations
+I next switched the algorithm to one still single-threaded that the compiler couldn’t optimize so easily: **Sieve of Eratosthenes**. This algorithm finds all prime numbers up to the input value, *n*. It initializes an array of size *n* to keep track of values, loops up to $\sqrt{n}$ (as that is the largest possible factor of *n*), and performs $O(n)$ work each iteration to mark multiples. Therefore, it has $O(n log log n)$ runtime. This function grows slightly faster than linear.  
 
-## Bytecode/Machine Code Insights
+The arrays for all three implementations live on the heap. I do not benchmark the time to allocate the space nor count the number of prime numbers found at the end. I just time the calculation. I did not want to dilute my results by considering system effects that I knew would have a big impact. I conducted 3–4 trials, took the average times, and rounded.  
 
-### Implications of Volatile
+I compiled the C code with no optimizers so I can see their impact later. Here are my results:
 
-Why is the C code so much slower? I thought it would be faster. I started to look at what was happening under the hood to get more insights on these performance outcomes. Since Java bytecode is compiled enough to then get (more or less) interpreted to run on the local machine, I figured it couldn't be too hard to follow the logic compared to Assembly. When comparing the bytecode of the volatile and non-volatile Java counters, I saw no difference. Turns out, the difference lies in the class metadata, where `volatile` is stored as a flag. The JVM uses this metadata at runtime to enforce that instructions are not reordered by the JIT through "memory fences". My interpretation is that a "fence" is a lock/mutex, and this prevents race conditions that may get presented by compiler optimization. (The next step to see this in action would be to run Java with the `-XX:+PrintCompilation` flag.)
+| Num value      | Java time (ms) | C via JNI time (ms) | Native C time (ms) |
+|---------------|----------------|-------------------|------------------|
+| 1,000,001     | 23             | 8                 | 9                |
+| 10,000,001    | 340            | 50                | 64               |
+| 100,000,001   | 320            | 640               | 635              |
+| 1,000,000,001 | 5155           | 7550              | 8200             |
 
-This is where the meaning of "virtual" started to click for me. The JVM knows nothing of the local machine. The JDK, which wraps around the JVM, and JRE, which wraps around both of those, do. The Java **runtime environment** enforces abstractions such as memory safety, no raw pointers, no direct syscalls, and automatic garbage collection. Funny enough, most of the open source version of the JRE is written in C/C++ and Assembly, which makes sense with my initial assumption that is why C is sometimes chosen over Java.
+Next, I compiled the standalone C and C via JNI with the `O2` optimizer. `O3` was slightly slower, and since I am aiming for the fastest runtime possible, `O2` will be what I compare to in the rest of the article. I also passed the flag indicating my microarchitecture to the compiler, and I saw no difference in the LLVM IR nor assembly for both `O2` and `O3`, so LLVM and Clang must already account for it.  
 
-I then looked at the differences in the `.S` files of the C code that declared the counter volatile and the other that didn't; there was no difference.
+Because the C programs were on the cusp of exceeding the time of the Java program, I added one more benchmark that still allowed me to allocate memory the same way on the heap.
 
-### Experimenting with Optimizations
+| Num value      | Java time (ms) | C via JNI time (ms) | Native C time (ms) |
+|---------------|----------------|-------------------|------------------|
+| 1,000,001     | 23             | 1                 | 1                |
+| 10,000,001    | 340            | 10                | 17               |
+| 100,000,001   | 320            | 307               | 299              |
+| 1,000,000,001 | 5155           | 4240              | 4820             |
+| 2,000,000,001 | 11,900         | 10,640            | 10,580           |
 
-To better understand why the native code was slower, I compiled the C code (count variable `volatile`) with various optimization levels. I have JIT turned on for my JVM, but didn't want to experiment with turning it off. I figured JIT is always turned on in production, and a gcc optimizer is very likely also used in production. With `-O0` being the baseline, here's what I saw:
 
-- **-O2:** **3x faster**, thanks to **loop unrolling** and reduced branching  
-  - There are one-quarter of compare, move, and jump instructions as before.  
-  - A few different instructions were used too. `jge` was swapped for `jne` and `addl $1` swapped for `incl`. In this moment, I saw why RISC was invented.  
-  - When I removed `volatile` from the counter variable, the entire loop disappeared in the ASM file. Sure enough, the runtime was **0 ms** as the only thing that happened in between the two calls to `clock()` in the `.S` file was a move instruction.
 
-- **-O3:** same speed as -O2, no additional improvement  
-  - I read in documentation that -O3 is supposed to vectorize with SIMD. I was really excited to see this because that is a skill I want to learn next.
+## Observations and Analysis
+Good news! It appears that I achieved my goal order by looking at the last benchmark.  
 
-When compiling the JNI version with -O2, it actually became **slower**, possibly due to alignment or inlining issues. I also observed that my hand-written Assembly was very different from what `gcc -S` output, and I couldn’t make much sense of why. (Adding to the list of potential next articles.)
+Some observations: as *n* increases, the runtime of the C programs almost converges to that of the Java program. Trials where I enable `O2` and `O3` result in similar runtimes for small input values, but `O2` outputs scale better than `O3`. The 2nd Java benchmark for input size *k* is slightly slower than that of the next benchmark, *10k*.  
 
-### JIT, javac, and Dead Code
 
-I learned that `javac` is not an aggressive optimizer. The Java loop with an unused counter was still present in the bytecode, but executed very quickly — likely optimized away by the JIT at runtime. The JVM's JIT may also apply vectorization or loop optimizations, depending on the implementation and profiling results.
 
-### Rosetta 2 Caveat
+## Future work
+Ideas for 3rd article version or to inspire others:
 
-I have no idea how much performance was affected by having a JRE meant for a different chip on my machine.
+- What other system-level factors might prevent JNI from giving a Java program the same capabilities as native C?  
+- What kind of algorithm could be more effectively optimized if the optimizer was aware of the chip’s branch prediction strategy?  
+- Study the full set of optimization passes that Clang applies. What are the optimizations that the JIT applies? Do any compare?  
+- Could Java’s AOT or JIT be modified to account more for microarchitecture, or does it already?  
+- Generate the graph of the algorithm’s time complexity function. Then plot the points for each benchmark at each optimizer level. Use some kind of ML regression model to find the “curve” of best fit of the benchmarks. Once finding the parameters, infer system and overhead effects not accounted for in theoretical time complexity analysis. (I already started a Python script for this in `benchmarking/plot.ipynb`)  
+- Before taking a close look at the optimized LLVM IR code, what optimizations do I think are possible to apply based on my understanding of the Sieve of Eratosthenes? Do I see them?  
+- Can I manually optimize the `O2` output anymore and get better performance (considering that `O3` gave me worse performance)?  
+- Is it expected that the same logic will run faster when implemented and invoked in Assembly via JNI than in C via JNI? While the compiler likely generates more efficient code than I could manually, I understand the business logic and could potentially apply aggressive optimizations the compiler might miss. How does AI-assisted, logic-aware assembly (e.g., generated by ChatGPT) compare to compiler output across different optimization levels? This also makes me wonder how traditional compiler tools will evolve in the age of AI.  
+- Apply a more formal benchmarking technique or framework, especially one that will limit variance in results across trials.  
+- How does the JVM garbage collector behave during long-running native (JNI) calls, and what is the impact on application throughput and latency?  
+- In what ways do architecture-specific compiler optimizations, as revealed by analysis of LLVM IR, reflect the differences between CISC (x86-64) and RISC (ARM64) (micro)architectures?  
+- How could I observe CPU utilization across each setup and what would those results infer?  
+- Why does the performance of optimized binaries appear to not scale well for larger input?  
+- How do JVM optimizations or runtime effects sometimes lead to non-monotonic performance across increasing input sizes?  
+- Is Java bytecode comparable to unoptimized LLVM IR?  
+- How does the Java JIT’s versioning technique compare to profiling equivalent C programs with Clang?  
 
-## Conclusions
 
-This wasn’t meant to be groundbreaking. It was a personal deep dive to move beyond backend development and start understanding system programming and compilers. I’ve always considered time complexity when developing algorithms, but not as much the effects of language, compilation, runtime setup. I started with the assumption that C would crush Java in performance due to having less abstraction. I ended up realizing how complex compilation and runtime environments really are—they can optimize suboptimal code, but only if guided correctly. Understanding variable storage and what’s happening at the machine code layer can really improve how I write and optimize code as a backend developer. It was also fun noticing the similarities and differences between C/C++ and Java under the hood. Although I didn’t quite answer the second and third questions I originally set out to explore, the understanding I gained through this process was the prerequisite for getting there.
 
-Code, bytecode, and `.S` files are all included in the repository under `benchmarking/`. I hope this helps someone else scratching the same itch. There are a hundred directions to take this exploration, but I decided to stop here for now.
+## Side note about my inspiration
+A quick note: I want to give a shoutout to a YouTube video, ([*Python vs C++ Speed Comparison*](https://youtu.be/VioxsWYzoJk?si=266bhb4KGd0avsaV)) by The Builder, which I saw a few years ago and haven’t forgotten. It sparked curiosity in me about how languages work, compilers, and high-performance computing, which at the time I didn’t know were growing passions of mine. I realize now from my own investigation that there are a lot of important details left out, as I am sure this video is mostly for entertainment, but the creator does add more context in the comments section.  
 
-## Online References
 
-- [Operating Systems: Three Easy Pieces](https://pages.cs.wisc.edu/~remzi/OSTEP/) (Introduction)  
-- [Java Bytecode Crash Course](https://youtu.be/e2zmmkc5xI0?si=bWOKuCW8v5YOxNZ9) (YouTube video)  
-- [GCC documentation: Options That Control Optimization](https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html)  
+## References
+- [Onur Mutlu](https://www.youtube.com/@OnurMutluLectures ) and [Carnegie Mellon](https://youtube.com/playlist?list=PL5PHm2jkkXmi5CxxI7b3JCL1TWybTDtKq&si=lr-BAiZDxGXpiPy0) lectures
+- [MIT Performance Engineering](https://youtube.com/playlist?list=PLUl4u3cNGP63VIBQVWguXxZZi0566y7Wf&si=rBlrD-3eb0opXXs3), first 12 lectures 
+- [The Verge article](https://www.theverge.com/21304182/apple-arm-mac-rosetta-2-emulation-app-converter-explainer )
 
-## Compiling and Running on Mac
 
-```
-$ cd benchmarking
-```
+## How to Run
+1. **Modify Benchmark Values**  
+   - Edit `LocalLoop.c` at line 7 to set your desired benchmarking value.  
+   - Edit `Loop.java` at line 10 to set the corresponding value in Java.  
 
-Add execution permissions with
-```
-$ chmod +x build_and_run.sh
-$ chmod +x clean.sh
-```
+2. **Configure Build Script**  
+   - Update the `config` section of `build_and_run.sh` with settings for your machine and desired optimization level.  
 
-Run
+3. **Navigate to the Benchmarking Directory**  
+   ```bash
+   cd benchmarking/
+   ```
+4. **Add Execute Permissions**
+    ```bash
+    chmod +x build_and_run.sh
+    ```
+5. **Run the Benchmark**
+    ```bash
+    ./build_and_run.sh
+    ```
+6. **Clean up (optional)**
+    - Add execution permissions similar to step 4
+    ```bash
+    ./clean.sh
+    ```
+---
 
-```
-$ ./build_and_run.sh
-```
-Note that gcc has to compile for the same architecture as your JVM, which is x86_64 for me even though I have an ARM chip on my local machine. Run `$ java -XshowSettings:properties -version | grep os.arch` to see what your JVM uses and you may have to change `build_and_run.sh:46`
-
-to clean:
-```
-$ ./clean.sh
-```
+**Disclaimer:** Although I work at IBM, these opinions are all my own.
